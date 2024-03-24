@@ -28,13 +28,17 @@ type IndexModel struct {
 
 func main() {
 	e := echo.New()
+	e.Static("/", "css")
 	e.Use(middleware.Logger())
 	e.Renderer = newTemplates()
 
 	indexModel := IndexModel{Count: 0}
 	e.GET("/", func(c echo.Context) error {
-		indexModel.Count++
 		return c.Render(200, "index", indexModel)
+	})
+	e.POST("/count", func(c echo.Context) error {
+		indexModel.Count++
+		return c.Render(200, "counter", indexModel)
 	})
 
 	e.Logger.Fatal(e.Start(":8081"))
