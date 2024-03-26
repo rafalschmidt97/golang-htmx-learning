@@ -29,39 +29,29 @@
   <div id="contacts">
     <p>Contacts:</p>
 
-    <ol>
-      {{ range $i, $item := .Contacts }}
-        {{ template "contact" $item }}
-      {{ end }}
-    </ol>
+    {{ range $i, $item := .Contacts }}
+      {{ template "contact" $item }}
+    {{ end }}
+
+    <!-- this block will be appended using swap function -->
   </div>
-{{ end }}
-
-{{ block "form-error" . }}
-  <div id="form-error" style="color: red">
-    {{ .FormErrorMessage }}
-  </div>
-{{ end }}
-
-{{ block "form" . }}
-  <form
-    hx-post="/contacts"
-    hx-target="#contacts"
-    hx-target-409="#form-error">
-
-    <input type="text" placeholder="Name" name="name" />
-    <input type="text" placeholder="Name" name="address" />
-    <button type="submit">Add new</button>
-  </form>
-  {{ template "form-error" . }}
 {{ end }}
 
 {{ block "contact" . }}
-  <li>{{ .Name }} - {{ .Address }}</li>
+  <div>- {{ .Name }} - {{ .Address }}</div>
+{{ end }}
+
+{{ block "form" . }}
+  <form hx-post="/contacts" hx-target-error="this" hx-swap="outerHTML">
+    <input type="text" placeholder="Name" name="name" value="{{ .FormName }}" />
+    <input type="text" placeholder="Address" name="address" value="{{ .FormAddress }}" />
+    {{ if .FormErrorMessage }}<div style="color: red">{{ .FormErrorMessage }}</div>{{ end }}
+    <button type="submit">Add new</button>
+  </form>
 {{ end }}
 
 {{ block "oob-contact" . }}
-  <div id="contacts" hx-swap-oob="afterbegin">
+  <div hx-swap-oob="beforeend:#contacts">
     {{ template "contact" . }}
   </div>
 {{ end }}

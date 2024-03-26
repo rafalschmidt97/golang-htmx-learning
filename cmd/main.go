@@ -25,6 +25,8 @@ func newTemplates() *templates {
 
 type IndexModel struct {
 	FormErrorMessage string
+	FormName         string
+	FormAddress      string
 	Contacts         []Contact
 }
 
@@ -36,7 +38,6 @@ func (indexModel *IndexModel) addContact(name, address string) (contact Contact,
 
 	newContact := Contact{Name: name, Address: address}
 	indexModel.Contacts = append(indexModel.Contacts, newContact)
-	indexModel.FormErrorMessage = ""
 	return newContact, nil
 }
 
@@ -74,16 +75,26 @@ func main() {
 	})
 
 	e.POST("/contacts", func(c echo.Context) error {
-		name := c.FormValue("name")
-		address := c.FormValue("address")
-		_, ce := indexModel.addContact(name, address)
+		indexModel.FormName = c.FormValue("name")
+		indexModel.FormAddress = c.FormValue("address")
 
-		if ce != nil {
-			return c.Render(409, "form-error", indexModel)
+		if indexModel.FormName == "" || indexModel.FormAddress == "" {
+			indexModel.FormErrorMessage = "Fields must be filled"
+			return c.Render(400, "form", indexModel)
 		}
 
-		return c.Render(200, "contacts", indexModel)
-		// return c.Render(200, "oob-contact", co)
+		co, ce := indexModel.addContact(indexModel.FormName, indexModel.FormAddress)
+
+		if ce != nil {
+			return c.Render(409, "form", indexModel)
+		}
+
+		indexModel.FormErrorMessage = ""
+		indexModel.FormAddress = ""
+		indexModel.FormName = ""
+
+		c.Render(200, "form", indexModel)       // clear
+		return c.Render(200, "oob-contact", co) // append
 	})
 
 	e.Logger.Fatal(e.Start(":8081"))
