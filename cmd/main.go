@@ -4,6 +4,7 @@ import (
 	"errors"
 	"html/template"
 	"io"
+	"net/http"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -41,6 +42,22 @@ func (indexModel *IndexModel) addContact(name, address string) (contact Contact,
 	return newContact, nil
 }
 
+func (indexModel *IndexModel) removeContactByAddress(address string) (error error) {
+	contacts := make([]Contact, 0, len(indexModel.Contacts))
+	for _, contact := range indexModel.Contacts {
+		if contact.Address != address {
+			contacts = append(contacts, contact)
+		}
+	}
+
+	if len(indexModel.Contacts) == len(contacts) {
+		return errors.New("not found")
+	}
+
+	indexModel.Contacts = contacts
+	return nil
+}
+
 func (indexModel *IndexModel) contactExists(address string) bool {
 	for _, v := range indexModel.Contacts {
 		if v.Address == address {
@@ -54,6 +71,10 @@ func (indexModel *IndexModel) contactExists(address string) bool {
 type Contact struct {
 	Name    string
 	Address string
+}
+
+type DeleteContactRequest struct {
+	Address string `param:"address"`
 }
 
 func main() {
@@ -95,6 +116,30 @@ func main() {
 
 		c.Render(200, "form", indexModel)       // clear
 		return c.Render(200, "oob-contact", co) // append
+	})
+
+	e.DELETE("/contacts/:address", func(c echo.Context) error {
+		var request DeleteContactRequest
+		be := c.Bind(&request)
+
+		if be != nil {
+			return c.String(http.StatusBadRequest, "bad request")
+		}
+
+		if request.Address == "" {
+			indexModel.FormErrorMessage = "empty address param"
+			return c.Render(400, "form", indexModel)
+		}
+
+		ce := indexModel.removeContactByAddress(request.Address)
+
+		if ce != nil {
+			return c.Render(409, "form", indexModel)
+		}
+
+		indexModel.FormErrorMessage = ""
+
+		return c.Render(200, "contacts", indexModel) // append
 	})
 
 	e.Logger.Fatal(e.Start(":8081"))
